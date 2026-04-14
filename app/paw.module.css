@@ -1,0 +1,66 @@
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(253, 232, 232, 0.98);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  opacity: 0;
+}
+
+.fadeIn { animation: fadeIn 0.3s ease forwards; }
+.fadeOut { animation: fadeOut 0.5s ease forwards; pointer-events: none; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+.pawWrapper {
+  width: 450px;
+  height: 450px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: bigStamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pawMain {
+  position: relative;
+  width: 300px;
+  height: 280px;
+  background: white;
+  border-radius: 120px 120px 100px 100px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.toe {
+  position: absolute;
+  background: #ffb1b5;
+  width: 65px;
+  height: 90px;
+  border-radius: 50%;
+}
+
+/* 위치를 px로 고정해서 찌그러짐 방지 */
+.toe:nth-child(1) { top: -45px; left: 15px; transform: rotate(-25deg); }
+.toe:nth-child(2) { top: -75px; left: 85px; transform: rotate(-8deg); }
+.toe:nth-child(3) { top: -75px; left: 150px; transform: rotate(8deg); }
+.toe:nth-child(4) { top: -45px; left: 220px; transform: rotate(25deg); }
+
+.centerPad {
+  position: absolute;
+  background: #ffb1b5;
+  width: 175px;
+  height: 140px;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
+}
+
+@keyframes bigStamp {
+  0% { transform: scale(5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
