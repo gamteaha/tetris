@@ -42,6 +42,12 @@ export default function StartScreen() {
           </button>
         </form>
       </div>
+
+      <footer className={styles.footer}>
+        <span>📚 [과목명]</span>
+        <span>🎓 [학과]</span>
+        <span>👤 [이름]</span>
+      </footer>
     </main>
   );
 }

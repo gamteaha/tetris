@@ -142,3 +142,28 @@
   transform: translateY(2px) scale(0.98);
   box-shadow: 0 5px 10px rgba(255, 154, 158, 0.3);
 }
+
+.footer {
+  position: absolute;
+  bottom: 2rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  z-index: 5;
+}
+
+@media (max-width: 640px) {
+  .footer {
+    flex-direction: column;
+    gap: 0.3rem;
+    bottom: 1rem;
+    font-size: 0.9rem;
+  }
+}
+
