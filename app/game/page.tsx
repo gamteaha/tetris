@@ -115,6 +115,8 @@ function GameContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (status !== 'playing' && status !== 'paused') return;
+      
+      soundManager.current?.initCtx();
 
       switch(e.code) {
         case 'ArrowLeft': e.preventDefault(); moveLeft(); break;
@@ -133,6 +135,7 @@ function GameContent() {
   // 터치 스와이프 조작 (프롬프트 2)
   const touchStart = useRef({ x: 0, y: 0, time: 0 });
   const handleTouchStart = (e: React.TouchEvent) => {
+    soundManager.current?.initCtx();
     const t = e.touches[0];
     touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
   };
@@ -156,6 +159,14 @@ function GameContent() {
       else if (dy < -30) rotate();
     }
   };
+
+  useEffect(() => {
+    if (status === 'playing') {
+      soundManager.current?.startBGM();
+    } else {
+      soundManager.current?.stopBGM();
+    }
+  }, [status]);
 
   useEffect(() => {
     if (status === 'complete') {
@@ -291,7 +302,15 @@ function GameContent() {
     if (soundManager.current) {
       const muted = soundManager.current.toggleMute();
       setIsMuted(muted);
+      if (!muted && status === 'playing') {
+        soundManager.current.startBGM();
+      }
     }
+  };
+
+  const touchInitAnd = (fn: () => void) => {
+    soundManager.current?.initCtx();
+    fn();
   };
 
   return (
@@ -318,7 +337,7 @@ function GameContent() {
             {status === 'gameover' && (
               <div className={styles.overlay}>
                 😭 게임 오버!
-                <button className={`${styles.btn} ${styles.overlaySub}`} onClick={startGame} style={{ marginTop: '1rem', fontSize: '1.2rem', width: 'auto' }}>
+                <button className={`${styles.btn} ${styles.overlaySub}`} onClick={() => { soundManager.current?.initCtx(); startGame(); }} style={{ marginTop: '1rem', fontSize: '1.2rem', width: 'auto' }}>
                   다시 시작
                 </button>
               </div>
@@ -344,20 +363,20 @@ function GameContent() {
 
         {/* 터치 전용 버튼 (프롬프트 2) */}
         <div className={styles.touchControls}>
-          <button className={styles.touchBtn} onTouchStart={moveLeft}>←</button>
-          <button className={styles.touchBtn} onTouchStart={rotate}>↻</button>
-          <button className={styles.touchBtn} onTouchStart={moveRight}>→</button>
-          <button className={styles.touchBtn} onTouchStart={hardDrop}>⬇</button>
+          <button className={styles.touchBtn} onTouchStart={() => touchInitAnd(moveLeft)}>←</button>
+          <button className={styles.touchBtn} onTouchStart={() => touchInitAnd(rotate)}>↻</button>
+          <button className={styles.touchBtn} onTouchStart={() => touchInitAnd(moveRight)}>→</button>
+          <button className={styles.touchBtn} onTouchStart={() => touchInitAnd(hardDrop)}>⬇</button>
         </div>
 
         <div className={styles.controlsSection}>
           <button className={styles.btn} onClick={handleMute}>
             {isMuted ? '🔇 음소거 해제' : '🔊 소리 끄기'}
           </button>
-          <button className={styles.btn} onClick={pauseGame}>
+          <button className={styles.btn} onClick={() => { soundManager.current?.initCtx(); pauseGame(); }}>
             ⏸ 일시정지 (P)
           </button>
-          <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={startGame}>
+          <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => { soundManager.current?.initCtx(); startGame(); }}>
             🔄 재시작
           </button>
           <button className={`${styles.btn} ${styles.btnSecondary}`} onClick={() => navigate('/')}>

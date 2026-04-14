@@ -190,7 +190,6 @@ export function useTetris(options: {
 
       if (blocksInRow === BOARD_WIDTH) {
         cleared++;
-        options.onClear?.(); // 클리어 사운드
         updatedLocked = updatedLocked.map(lp => {
           return {
             ...lp,
@@ -209,8 +208,10 @@ export function useTetris(options: {
     
     if (totalLines >= 3) {
       setStatus('complete');
-      options.onComplete?.(); // 완료 사운드
+      options.onComplete?.(); // 완료 시에는 완료 사운드만 재생
       return;
+    } else if (cleared > 0) {
+      options.onClear?.(); // 아직 완료되지 않았을 때만 클리어 사운드 재생
     }
 
     const nextP = createPiece(nextPieceType);

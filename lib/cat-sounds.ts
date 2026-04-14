@@ -5,15 +5,108 @@
 export class CatSoundManager {
   private ctx: AudioContext | null = null;
   private muted: boolean = false;
+  private bgmOscs: OscillatorNode[] = [];
+  private bgmGains: GainNode[] = [];
+  private bgmInterval: any = null;
+  private bgmStarted: boolean = false;
 
   constructor() {}
 
-  private initCtx() {
+  public initCtx() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
+    }
+  }
+
+  /**
+   * 배경음악 시작 (8비트 풍의 귀여운 멜로디)
+   */
+  startBGM() {
+    if (this.bgmStarted) return;
+    this.bgmStarted = true;
+    this.initCtx();
+    
+    // 멜로디 정의 (주파수, 박자) - 더 경쾌한 느낌으로 개선
+    const melody = [
+      { f: 261.63, d: 0.15 }, // C4
+      { f: 329.63, d: 0.15 }, // E4
+      { f: 392.00, d: 0.15 }, // G4
+      { f: 440.00, d: 0.15 }, // A4
+      { f: 523.25, d: 0.15 }, // C5
+      { f: 440.00, d: 0.15 }, // A4
+      { f: 392.00, d: 0.15 }, // G4
+      { f: 329.63, d: 0.15 }, // E4
+      { f: 293.66, d: 0.15 }, // D4
+      { f: 329.63, d: 0.15 }, // E4
+      { f: 261.63, d: 0.15 }, // C4
+      { f: 196.00, d: 0.15 }, // G3
+    ];
+    
+    let noteIndex = 0;
+    const tempo = 0.18; // 박자 살짝 빠르게
+
+    const playNote = () => {
+      if (this.muted || !this.bgmStarted) return;
+      const ctx = this.ctx!;
+      const now = ctx.currentTime;
+      const note = melody[noteIndex % melody.length];
+      
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      // 8비트 느낌을 위해 triangle과 square 조합 (부드러운 사각파)
+      osc.type = 'triangle'; 
+      osc.frequency.setValueAtTime(note.f, now);
+      
+      // 배음을 섞기 위해 서브 오실레이터 하나 더 (선택사항, 여기선 심플하게 저주파 필터만)
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1200, now);
+
+      gain.gain.setValueAtTime(0.08, now); // BGM 볼륨 (상향 조정)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + tempo * 0.8);
+      
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now);
+      osc.stop(now + tempo);
+      
+      this.bgmOscs.push(osc);
+      this.bgmGains.push(gain);
+      
+      // 16박자마다 작은 울음소리 서비스
+      if (noteIndex % 16 === 8) {
+        this.synthesizeMeow([[0, 400], [0.1, 500], [0.3, 350]], 0.3, 0.05);
+      }
+
+      // 청소
+      setTimeout(() => {
+        this.bgmOscs = this.bgmOscs.filter(o => o !== osc);
+        this.bgmGains = this.bgmGains.filter(g => g !== gain);
+      }, tempo * 1000 + 100);
+
+      noteIndex++;
+    };
+
+    // 즉시 로드 방지 및 초기 지연
+    setTimeout(() => {
+      if (this.bgmStarted) {
+        playNote();
+        this.bgmInterval = setInterval(playNote, tempo * 1000);
+      }
+    }, 100);
+  }
+
+  stopBGM() {
+    this.bgmStarted = false;
+    if (this.bgmInterval) {
+      clearInterval(this.bgmInterval);
+      this.bgmInterval = null;
     }
   }
 
@@ -172,6 +265,9 @@ export class CatSoundManager {
 
   toggleMute() {
     this.muted = !this.muted;
+    if (this.muted) {
+      this.stopBGM();
+    }
     return this.muted;
   }
 
