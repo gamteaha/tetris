@@ -41,13 +41,12 @@ export default function StartScreen() {
             게임 시작 🐾
           </button>
         </form>
-      </div>
 
-      <footer className={styles.footer}>
-        <span>📚 AI코딩을활용한창의적앱개발</span>
-        <span>🎓 데이터과학과</span>
-        <span>👤 김태희</span>
-      </footer>
+        <div className={styles.studentInfo}>
+          <p>📚 AI코딩을활용한창의적앱개발</p>
+          <p>🎓 데이터과학과 | 👤 김태희</p>
+        </div>
+      </div>
     </main>
   );
 }

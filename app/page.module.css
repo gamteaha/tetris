@@ -143,27 +143,17 @@
   box-shadow: 0 5px 10px rgba(255, 154, 158, 0.3);
 }
 
-.footer {
-  position: absolute;
-  bottom: 2rem;
-  left: 0;
-  right: 0;
-  text-align: center;
+.studentInfo {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #f1f5f9;
   color: #64748b;
-  font-weight: 500;
-  font-size: 1rem;
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
-  z-index: 5;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
-@media (max-width: 640px) {
-  .footer {
-    flex-direction: column;
-    gap: 0.3rem;
-    bottom: 1rem;
-    font-size: 0.9rem;
-  }
+.studentInfo p {
+  margin: 0.2rem 0;
+  font-weight: 500;
 }
 
