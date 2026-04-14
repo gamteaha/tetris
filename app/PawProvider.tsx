@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { CatSoundManager } from '@/lib/cat-sounds';
 import styles from './paw.module.css';
 
@@ -14,7 +14,6 @@ export default function PawProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<'idle' | 'in' | 'out'>('idle');
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const soundManager = useRef<CatSoundManager | null>(null);
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export default function PawProvider({ children }: { children: ReactNode }) {
         setPhase('idle');
       }, 500);
     }
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   return (
     <PawContext.Provider value={{ navigate }}>
