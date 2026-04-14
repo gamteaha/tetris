@@ -34,6 +34,21 @@ function GameContent() {
   const playerName = searchParams.get('name') || 'Guest';
   const { navigate } = usePawTransition();
 
+  // 셀 사이즈 동적 조절 (프롬프트 1)
+  const [cellSize, setCellSize] = useState(30);
+
+  useEffect(() => {
+    function handleResize() {
+      const maxH = window.innerHeight * 0.65;
+      const maxW = window.innerWidth * 0.9;
+      const size = Math.floor(Math.min(maxH / BOARD_HEIGHT, maxW / BOARD_WIDTH));
+      setCellSize(Math.max(15, size)); // 최소값 보장
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // 사운드 매니저 초기화
   const soundManager = useRef<CatSoundManager | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -77,13 +92,16 @@ function GameContent() {
           }
         }
         if (lastBlocks.length > 0) {
-          const avgX = (lastBlocks.reduce((sum, b) => sum + b.x, 0) / lastBlocks.length + 0.5) * CELL_SIZE;
-          const maxY = (Math.max(...lastBlocks.map(b => b.y)) + 1) * CELL_SIZE;
+          const avgX = (lastBlocks.reduce((sum, b) => sum + b.x, 0) / lastBlocks.length + 0.5) * cellSize;
+          const maxY = (Math.max(...lastBlocks.map(b => b.y)) + 1) * cellSize;
           triggerParticles(avgX, maxY);
         }
       }
     },
-    onClear: () => soundManager.current?.playClear(),
+    onClear: () => {
+      soundManager.current?.playClear();
+      if (navigator.vibrate) navigator.vibrate(100); // 줄 완성 시 진동 (프롬프트 3)
+    },
     onComplete: () => soundManager.current?.playComplete()
   });
 
@@ -112,6 +130,33 @@ function GameContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [status, moveLeft, moveRight, moveDown, rotate, hardDrop, holdPiece, pauseGame]);
 
+  // 터치 스와이프 조작 (프롬프트 2)
+  const touchStart = useRef({ x: 0, y: 0, time: 0 });
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (status !== 'playing') return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.current.x;
+    const dy = t.clientY - touchStart.current.y;
+    const dt = Date.now() - touchStart.current.time;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (absX < 10 && absY < 10 && dt < 200) {
+      hardDrop(); // 탭 시 하드드롭
+    } else if (absX > absY) {
+      if (dx > 30) moveRight();
+      else if (dx < -30) moveLeft();
+    } else {
+      if (dy > 30) moveDown();
+      else if (dy < -30) rotate();
+    }
+  };
+
   useEffect(() => {
     if (status === 'complete') {
       const s = Math.floor(exactTotalMs / 1000);
@@ -139,7 +184,7 @@ function GameContent() {
 
       // 2. 체크무늬 격자 깔기
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      const patternSize = 40;
+      const patternSize = cellSize * 1.5;
       for (let y = 0; y < canvas.height; y += patternSize) {
         for (let x = 0; x < canvas.width; x += patternSize) {
           if ((Math.floor(x / patternSize) + Math.floor(y / patternSize)) % 2 === 0) {
@@ -157,18 +202,18 @@ function GameContent() {
       ctx.fill();
 
       // 세로 가이드라인
-      ctx.strokeStyle = 'rgba(168, 85, 247, 0.25)';
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.15)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let c = 1; c < BOARD_WIDTH; c++) {
-        ctx.moveTo(c * CELL_SIZE, 0);
-        ctx.lineTo(c * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
+        ctx.moveTo(c * cellSize, 0);
+        ctx.lineTo(c * cellSize, BOARD_HEIGHT * cellSize);
       }
       ctx.stroke();
 
       // 4. 블록 렌더링 (잠긴 블록)
       lockedPieces.forEach(lp => {
-        drawCatFromBlocks(ctx, lp.blocks, lp.type, 1, CELL_SIZE, lp.rotation, 'locked');
+        drawCatFromBlocks(ctx, lp.blocks, lp.type, 1, cellSize, lp.rotation, 'locked');
       });
 
       // 5. 고스트 및 액티브 피스
@@ -193,7 +238,7 @@ function GameContent() {
           const gCtx = gCanvas.getContext('2d');
           if (gCtx) {
             gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
-            drawCatFromBlocks(gCtx, ghostBlocks, piece.type, 1, CELL_SIZE, piece.rotation, 'ghost');
+            drawCatFromBlocks(gCtx, ghostBlocks, piece.type, 1, cellSize, piece.rotation, 'ghost');
             ctx.save();
             ctx.globalAlpha = 0.25;
             ctx.drawImage(gCanvas, 0, 0);
@@ -201,7 +246,7 @@ function GameContent() {
           }
         }
         
-        drawCatFromBlocks(ctx, getBlocks(piece), piece.type, 1, CELL_SIZE, piece.rotation, 'active');
+        drawCatFromBlocks(ctx, getBlocks(piece), piece.type, 1, cellSize, piece.rotation, 'active');
       }
 
       // 6. 파티클 업데이트 및 드로잉
@@ -240,7 +285,7 @@ function GameContent() {
 
     requestRef.current = requestAnimationFrame(render);
     return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
-  }, [lockedPieces, piece, board, getDropY]);
+  }, [lockedPieces, piece, board, getDropY, cellSize]);
 
   const handleMute = () => {
     if (soundManager.current) {
@@ -262,16 +307,18 @@ function GameContent() {
           <div className={styles.boardContainer}>
             <canvas 
               ref={boardRef} 
-              width={BOARD_WIDTH * CELL_SIZE} 
-              height={BOARD_HEIGHT * CELL_SIZE} 
-              className={styles.canvas} 
+              width={BOARD_WIDTH * cellSize} 
+              height={BOARD_HEIGHT * cellSize} 
+              className={styles.canvas}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
             />
             
             {status === 'paused' && <div className={styles.overlay}>⏸ 일시정지</div>}
             {status === 'gameover' && (
               <div className={styles.overlay}>
                 😭 게임 오버!
-                <button className={`${styles.btn} ${styles.overlaySub}`} onClick={startGame} style={{ marginTop: '1rem', fontSize: '1.2rem' }}>
+                <button className={`${styles.btn} ${styles.overlaySub}`} onClick={startGame} style={{ marginTop: '1rem', fontSize: '1.2rem', width: 'auto' }}>
                   다시 시작
                 </button>
               </div>
@@ -285,14 +332,22 @@ function GameContent() {
           </div>
 
           <div className={styles.infoPanel}>
-            <MiniBox title="NEXT" type={nextPieceType} />
-            <MiniBox title="HOLD (C)" type={holdPieceType} />
+            <MiniBox title="NEXT" type={nextPieceType} size={cellSize * 2} />
+            <MiniBox title="HOLD (C)" type={holdPieceType} size={cellSize * 2} />
             
             <div className={styles.panelBox}>
               <div className={styles.panelTitle}>SCORE</div>
               <div className={styles.scoreValue}>{score}</div>
             </div>
           </div>
+        </div>
+
+        {/* 터치 전용 버튼 (프롬프트 2) */}
+        <div className={styles.touchControls}>
+          <button className={styles.touchBtn} onTouchStart={moveLeft}>←</button>
+          <button className={styles.touchBtn} onTouchStart={rotate}>↻</button>
+          <button className={styles.touchBtn} onTouchStart={moveRight}>→</button>
+          <button className={styles.touchBtn} onTouchStart={hardDrop}>⬇</button>
         </div>
 
         <div className={styles.controlsSection}>
@@ -310,12 +365,11 @@ function GameContent() {
           </button>
         </div>
       </div>
-
     </div>
   );
 }
 
-function MiniBox({ title, type }: { title: string, type: TetrominoType | null }) {
+function MiniBox({ title, type, size }: { title: string, type: TetrominoType | null, size: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   
   useEffect(() => {
@@ -329,12 +383,12 @@ function MiniBox({ title, type }: { title: string, type: TetrominoType | null })
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-  }, [type]);
+  }, [type, size]);
 
   return (
     <div className={styles.panelBox}>
       <div className={styles.panelTitle}>{title}</div>
-      <canvas ref={ref} width={80} height={80} style={{ display: 'block' }} />
+      <canvas ref={ref} width={size} height={size} style={{ display: 'block', width: '80px', height: '80px' }} />
     </div>
   );
 }
