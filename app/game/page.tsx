@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTetris, BOARD_WIDTH, BOARD_HEIGHT, TetrominoType, PieceState } from './useTetris';
